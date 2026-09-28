@@ -8,6 +8,7 @@ import { directionsUrl } from "@/lib/address";
 import { requireMembership } from "@/lib/session";
 import { openStorm } from "@/lib/storms";
 import { fmtTime } from "@/lib/time";
+import { getTimezone } from "@/lib/company";
 import { OfflineSync } from "@/components/OfflineSync";
 import { CheckIn } from "./CheckIn";
 
@@ -22,7 +23,7 @@ export default async function StopPage({ params }: { params: Promise<{ id: strin
     .where(and(eq(customer.id, id), eq(customer.organizationId, membership.organizationId)));
   if (!c) notFound();
 
-  const current = await openStorm(membership.organizationId);
+  const [current, tz] = await Promise.all([openStorm(membership.organizationId), getTimezone(membership.organizationId)]);
   const visits = current
     ? await db
         .select({ completedAt: serviceEvent.completedAt, driverName: serviceEvent.driverName, proofToken: serviceEvent.proofToken })
@@ -53,7 +54,7 @@ export default async function StopPage({ params }: { params: Promise<{ id: strin
           <div className="mt-5 rounded border border-night-line bg-night-2 p-3">
             {visits.map((v) => (
               <p key={v.proofToken}>
-                Done at {fmtTime(v.completedAt)} by {v.driverName}.{" "}
+                Done at {fmtTime(v.completedAt, tz)} by {v.driverName}.{" "}
                 <Link href={`/p/${v.proofToken}`} className="text-frost underline">Proof</Link>
               </p>
             ))}

@@ -62,6 +62,25 @@ export const customerRelations = relations(customer, ({ one, many }) => ({
 
 const tz = { withTimezone: true } as const;
 
+/** Per-company preferences. A missing row means defaults (APP_TIMEZONE, no yard). */
+export const companySettings = pgTable("company_settings", {
+  organizationId: text("organization_id")
+    .primaryKey()
+    .references(() => organization.id, { onDelete: "cascade" }),
+  /** IANA zone used for every time shown to the office, drivers, and customers. */
+  timezone: text("timezone").notNull(),
+  /** Where trucks leave from. Routes start at the stop nearest the yard. */
+  yardAddress: text("yard_address"),
+  yardLat: doublePrecision("yard_lat"),
+  yardLng: doublePrecision("yard_lng"),
+  updatedAt: timestamp("updated_at", tz)
+    .defaultNow()
+    .$onUpdate(() => new Date())
+    .notNull(),
+});
+
+export type CompanySettings = typeof companySettings.$inferSelect;
+
 /** One snow event. Service records are grouped by storm, and each storm is anchored on Solana. */
 export const storm = pgTable(
   "storm",

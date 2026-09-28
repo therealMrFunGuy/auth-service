@@ -32,7 +32,7 @@ export default async function ProofPage({ params }: { params: Promise<{ token: s
   const { token } = await params;
   const v = await verifyVisit(token);
   if (!v) notFound();
-  const { ev, orgName, anchor, proof, checks } = v;
+  const { ev, orgName, tz, anchor, proof, checks } = v;
 
   const mins = Math.round((ev.completedAt.getTime() - ev.startedAt.getTime()) / 60_000);
   const failed = checks.some((c) => c.ok === false);
@@ -52,8 +52,8 @@ export default async function ProofPage({ params }: { params: Promise<{ token: s
         <p className="mt-2 text-lg">{ev.addressSnapshot}</p>
 
         <dl className="mt-6 grid grid-cols-2 gap-x-6 gap-y-4 border-y border-frost py-5 sm:grid-cols-3">
-          <div><dt className="text-sm text-slush">Finished</dt><dd className="font-semibold">{fmtDateTime(ev.completedAt)}</dd></div>
-          <div><dt className="text-sm text-slush">Arrived</dt><dd className="font-semibold">{fmtTime(ev.startedAt)} ({mins < 1 ? "under a minute" : `${mins} min`} on site)</dd></div>
+          <div><dt className="text-sm text-slush">Finished</dt><dd className="font-semibold">{fmtDateTime(ev.completedAt, tz)}</dd></div>
+          <div><dt className="text-sm text-slush">Arrived</dt><dd className="font-semibold">{fmtTime(ev.startedAt, tz)} ({mins < 1 ? "under a minute" : `${mins} min`} on site)</dd></div>
           <div><dt className="text-sm text-slush">Crew</dt><dd className="font-semibold">{driverFirst}</dd></div>
           <div className="col-span-2 sm:col-span-3">
             <dt className="text-sm text-slush">Location</dt>

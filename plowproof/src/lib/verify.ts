@@ -6,6 +6,7 @@ import { hashBytes, hashRecord, merkleProof, merkleRoot, verifyMerkleProof, type
 import { anchorKeypair, readMemo, type OnchainMemo } from "@/lib/solana";
 import { getObject } from "@/lib/storage";
 import { fmtDateTime } from "@/lib/time";
+import { getTimezone } from "@/lib/company";
 
 export type Check = { ok: boolean | null; title: string; detail: string };
 
@@ -21,6 +22,7 @@ export async function verifyVisit(token: string) {
     .where(eq(serviceEvent.proofToken, token));
   if (!row) return null;
   const ev = row.ev;
+  const tz = await getTimezone(ev.organizationId);
   const checks: Check[] = [];
 
   // 1. The record itself.
@@ -84,7 +86,7 @@ export async function verifyVisit(token: string) {
             ? {
                 ok: true,
                 title: "Recorded on Solana",
-                detail: `The batch fingerprint is on the public Solana blockchain${onchain.blockTime ? ` as of ${fmtDateTime(onchain.blockTime)}` : ""}. It can't be edited or deleted.`,
+                detail: `The batch fingerprint is on the public Solana blockchain${onchain.blockTime ? ` as of ${fmtDateTime(onchain.blockTime, tz)}` : ""}. It can't be edited or deleted.`,
               }
             : { ok: false, title: "Blockchain doesn't match", detail: "The transaction on Solana doesn't contain this batch's fingerprint." },
         );
@@ -94,5 +96,5 @@ export async function verifyVisit(token: string) {
     }
   }
 
-  return { ev, orgName: row.orgName, anchor: a, proof, onchain, checks };
+  return { ev, orgName: row.orgName, tz, anchor: a, proof, onchain, checks };
 }

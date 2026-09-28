@@ -3,6 +3,8 @@ import { and, asc, desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { invitation, member, user } from "@/db/schema";
 import { requireDispatcher } from "@/lib/session";
+import { fmtDate } from "@/lib/time";
+import { getTimezone } from "@/lib/company";
 import { InviteForm, InviteActions, RemoveMemberButton } from "./TeamActions";
 
 export const metadata: Metadata = { title: "Drivers" };
@@ -28,6 +30,7 @@ export default async function TeamPage() {
   ]);
 
   const now = new Date();
+  const tz = await getTimezone(orgId);
   const drivers = people.filter((p) => p.role === "member").length;
 
   return (
@@ -58,7 +61,7 @@ export default async function TeamPage() {
                       <div className="truncate font-semibold">{inv.email}</div>
                       <div className={`text-sm ${expired ? "text-brake" : "text-slush"}`}>
                         {ROLE_LABEL[inv.role ?? "member"] ?? "Driver"},{" "}
-                        {expired ? "invite expired" : `expires ${inv.expiresAt.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`}
+                        {expired ? "invite expired" : `expires ${fmtDate(inv.expiresAt, tz)}`}
                       </div>
                     </div>
                     <InviteActions organizationId={orgId} invitationId={inv.id} email={inv.email} role={inv.role ?? "member"} />

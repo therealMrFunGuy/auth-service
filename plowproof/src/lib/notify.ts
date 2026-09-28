@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { customer, member, organization, serviceEvent, user } from "@/db/schema";
 import { buttonEmail, sendEmail } from "@/lib/email";
 import { fmtDate, fmtTime } from "@/lib/time";
+import { getTimezone } from "@/lib/company";
 
 const APP_URL = process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
 
@@ -52,11 +53,12 @@ export async function emailVisitProof(eventId: string, opts: { resend?: boolean 
     .limit(1);
 
   const url = `${APP_URL}/p/${ev.proofToken}`;
+  const tz = await getTimezone(ev.organizationId);
   const photos = ev.photos.length === 0 ? "" : ` with ${ev.photos.length} ${ev.photos.length === 1 ? "photo" : "photos"}`;
   const { html, text } = buttonEmail({
     heading: "Your snow removal is done",
     body:
-      `${orgName} cleared the snow at ${ev.addressSnapshot} at ${fmtTime(ev.completedAt)} on ${fmtDate(ev.completedAt)}. ` +
+      `${orgName} cleared the snow at ${ev.addressSnapshot} at ${fmtTime(ev.completedAt, tz)} on ${fmtDate(ev.completedAt, tz)}. ` +
       `The proof page shows the visit${photos}, the time on site, and where the crew's phone was. ` +
       `It's sealed on the Solana blockchain when the storm ends, so the record can't be changed later.`,
     cta: "See proof of service",

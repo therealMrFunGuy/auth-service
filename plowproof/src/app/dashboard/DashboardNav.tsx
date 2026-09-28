@@ -7,12 +7,13 @@ const LINKS = [
   { href: "/dashboard/import", label: "Import" },
   { href: "/dashboard/storms", label: "Storms" },
   { href: "/dashboard/team", label: "Drivers" },
+  { href: "/dashboard/settings", label: "Settings" },
 ];
 
 export function DashboardNav() {
   const path = usePathname();
   return (
-    <nav aria-label="Main" className="flex gap-1">
+    <nav aria-label="Main" className="flex flex-wrap gap-1">
       {LINKS.map((l) => {
         const active = l.href === "/dashboard" ? path === l.href : path.startsWith(l.href);
         return (

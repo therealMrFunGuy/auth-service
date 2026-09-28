@@ -8,6 +8,7 @@ import { FAR_FROM_PROPERTY_M } from "@/lib/geo";
 import { requireDispatcher } from "@/lib/session";
 import { explorerUrl } from "@/lib/solana";
 import { fmtDateTime, fmtTime } from "@/lib/time";
+import { getTimezone } from "@/lib/company";
 import { AnchorRetry, SendProofButton, StormControls } from "./StormControls";
 
 export const metadata: Metadata = { title: "Storm" };
@@ -23,7 +24,9 @@ function ProofEmailCell({
   emailedAt,
   error,
   cust,
+  tz,
 }: {
+  tz: string;
   eventId: string;
   emailedAt: Date | null;
   error: string | null;
@@ -33,7 +36,7 @@ function ProofEmailCell({
   return (
     <div className="mt-1 space-y-1 text-sm">
       {emailedAt ? (
-        <div className="text-slush">Emailed {fmtTime(emailedAt)}</div>
+        <div className="text-slush">Emailed {fmtTime(emailedAt, tz)}</div>
       ) : error ? (
         <div className="text-brake" title={error}>Email failed</div>
       ) : !cust.emailProof ? (
@@ -51,10 +54,11 @@ export default async function StormPage({ params }: { params: Promise<{ id: stri
   const [s] = await db.select().from(storm).where(and(eq(storm.id, id), eq(storm.organizationId, orgId)));
   if (!s) notFound();
 
-  const [visits, anchors, customers] = await Promise.all([
+  const [visits, anchors, customers, tz] = await Promise.all([
     db.select().from(serviceEvent).where(eq(serviceEvent.stormId, s.id)).orderBy(desc(serviceEvent.completedAt)),
     db.select().from(anchor).where(eq(anchor.stormId, s.id)).orderBy(asc(anchor.createdAt)),
     db.select({ id: customer.id, name: customer.name, street: customer.street, priority: customer.priority, email: customer.email, emailProof: customer.emailProof }).from(customer).where(eq(customer.organizationId, orgId)).orderBy(asc(customer.priority), asc(customer.street)),
+    getTimezone(orgId),
   ]);
 
   const served = new Set(visits.map((v) => v.customerId));
@@ -69,8 +73,8 @@ export default async function StormPage({ params }: { params: Promise<{ id: stri
         <Link href="/dashboard/storms" className="text-sm font-semibold text-slush hover:underline">All storms</Link>
         <h1 className="sign mt-1 text-4xl font-bold">{s.name}</h1>
         <p className="mt-1 text-slush">
-          {fmtDateTime(s.startedAt)}
-          {s.endedAt ? ` to ${fmtDateTime(s.endedAt)}` : ", still going"}
+          {fmtDateTime(s.startedAt, tz)}
+          {s.endedAt ? ` to ${fmtDateTime(s.endedAt, tz)}` : ", still going"}
           {s.snowfallInches != null ? `, ${s.snowfallInches}″ of snow` : ""}
         </p>
         <p className="mt-3 text-lg">
@@ -91,7 +95,7 @@ export default async function StormPage({ params }: { params: Promise<{ id: stri
                 <div className="min-w-0 flex-1">
                   <div className="font-semibold">
                     {a.leaves.length} {a.leaves.length === 1 ? "visit" : "visits"},{" "}
-                    {a.status === "confirmed" ? `sealed ${fmtDateTime(a.confirmedAt!)}` : a.status === "failed" ? "not sealed" : "sealing…"}
+                    {a.status === "confirmed" ? `sealed ${fmtDateTime(a.confirmedAt!, tz)}` : a.status === "failed" ? "not sealed" : "sealing…"}
                   </div>
                   <div className="truncate font-mono text-xs text-slush" title={a.merkleRoot}>Root {a.merkleRoot}</div>
                   {a.status === "failed" && <div className="text-sm text-brake">{a.error}</div>}
@@ -137,7 +141,7 @@ export default async function StormPage({ params }: { params: Promise<{ id: stri
                       </td>
                       <td className="px-4 py-3">{v.driverName}</td>
                       <td className="px-4 py-3 tabular-nums">
-                        {fmtTime(v.completedAt)}
+                        {fmtTime(v.completedAt, tz)}
                         <div className="text-sm text-slush">{mins} min on site</div>
                       </td>
                       <td className={`px-4 py-3 ${loc.warn ? "font-semibold text-brake" : ""}`}>{loc.text}</td>
@@ -159,6 +163,7 @@ export default async function StormPage({ params }: { params: Promise<{ id: stri
                           emailedAt={v.customerEmailedAt}
                           error={v.customerEmailError}
                           cust={v.customerId ? byId.get(v.customerId) : undefined}
+                          tz={tz}
                         />
                       </td>
                     </tr>

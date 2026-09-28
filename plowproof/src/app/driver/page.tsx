@@ -7,6 +7,8 @@ import { directionsUrl } from "@/lib/address";
 import { isDispatcher, requireMembership } from "@/lib/session";
 import { openStorm } from "@/lib/storms";
 import { fmtTime } from "@/lib/time";
+import { getSettings } from "@/lib/company";
+import { orderRoute } from "@/lib/route";
 import { OfflineSync } from "@/components/OfflineSync";
 import { SignOutButton } from "@/components/SignOutButton";
 
@@ -21,10 +23,14 @@ const GROUPS = [
 export default async function DriverPage() {
   const { session, membership } = await requireMembership();
   const orgId = membership.organizationId;
-  const [rows, current] = await Promise.all([
+  const [unordered, current, settings] = await Promise.all([
     db.select().from(customer).where(eq(customer.organizationId, orgId)).orderBy(asc(customer.priority), asc(customer.city), asc(customer.street)),
     openStorm(orgId),
+    getSettings(orgId),
   ]);
+  const tz = settings.timezone;
+  const rows = orderRoute(unordered, settings.yard);
+  const stopNumber = new Map(rows.map((r, i) => [r.id, i + 1]));
 
   const doneAt = new Map<string, Date>();
   if (current) {
@@ -39,6 +45,7 @@ export default async function DriverPage() {
 
   const firstName = (session.user.name || "").split(" ")[0];
   const remaining = rows.length - doneAt.size;
+  const upNext = rows.find((r) => !doneAt.has(r.id))?.id;
 
   return (
     <div className="min-h-dvh bg-night text-salt">
@@ -77,15 +84,21 @@ export default async function DriverPage() {
               <ul className="space-y-2">
                 {stops.map((s) => {
                   const done = doneAt.get(s.id);
+                  const next = s.id === upNext;
                   return (
-                    <li key={s.id} className={`flex items-stretch rounded border bg-night-2 ${done ? "border-night-line opacity-60" : "border-night-line"}`}>
+                    <li
+                      key={s.id}
+                      className={`flex items-stretch rounded border bg-night-2 ${done ? "border-night-line opacity-60" : next ? "border-beacon border-2" : "border-night-line"}`}
+                    >
                       <Link href={`/driver/stop/${s.id}`} className="min-w-0 flex-1 p-4 active:bg-night-line">
+                        {next && <div className="mb-1 text-sm font-bold tracking-wide text-beacon uppercase">Up next</div>}
                         <div className="sign text-2xl leading-tight font-bold">
+                          <span className="mr-2 text-frost/70 tabular-nums">{stopNumber.get(s.id)}.</span>
                           {s.street}{s.unit ? ` ${s.unit}` : ""}
                         </div>
                         <div className="text-frost">{s.name}, {s.city}</div>
                         {done ? (
-                          <p className="mt-2 font-semibold text-salt">Done at {fmtTime(done)}</p>
+                          <p className="mt-2 font-semibold text-salt">Done at {fmtTime(done, tz)}</p>
                         ) : (
                           s.notes && <p className="mt-2 text-[15px] leading-snug text-beacon">{s.notes}</p>
                         )}

@@ -2,6 +2,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { authClient } from "@/lib/auth-client";
+import { initSettings } from "@/app/dashboard/settings/actions";
 
 const slugify = (s: string) =>
   s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40) || "company";
@@ -28,6 +29,8 @@ export function OnboardingForm({ defaultName }: { defaultName: string }) {
       return;
     }
     await authClient.organization.setActive({ organizationId: data.id });
+    // Start with the owner's own time zone; they can change it in Settings.
+    await initSettings(Intl.DateTimeFormat().resolvedOptions().timeZone).catch(() => {});
     router.push("/dashboard/import");
     router.refresh();
   }

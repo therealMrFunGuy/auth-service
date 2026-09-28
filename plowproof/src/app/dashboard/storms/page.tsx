@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { serviceEvent, storm } from "@/db/schema";
 import { requireDispatcher } from "@/lib/session";
 import { fmtDateTime } from "@/lib/time";
+import { getTimezone } from "@/lib/company";
 import { startStormAction } from "./actions";
 
 export const metadata: Metadata = { title: "Storms" };
@@ -28,6 +29,7 @@ export default async function StormsPage() {
     .orderBy(desc(storm.startedAt));
 
   const open = rows.find((r) => !r.endedAt);
+  const tz = await getTimezone(membership.organizationId);
 
   return (
     <section className="max-w-4xl">
@@ -62,8 +64,8 @@ export default async function StormsPage() {
                     {!r.endedAt && <span className="ml-2 rounded bg-beacon px-2 py-0.5 text-sm text-asphalt">In progress</span>}
                   </div>
                   <div className="text-sm text-slush">
-                    {fmtDateTime(r.startedAt)}
-                    {r.endedAt ? ` to ${fmtDateTime(r.endedAt)}` : ""}
+                    {fmtDateTime(r.startedAt, tz)}
+                    {r.endedAt ? ` to ${fmtDateTime(r.endedAt, tz)}` : ""}
                     {r.snowfall != null ? `, ${r.snowfall}″ of snow` : ""}
                   </div>
                 </div>

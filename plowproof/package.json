@@ -12,6 +12,7 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
+    "test": "vitest run",
     "solana:keygen": "node scripts/solana-keygen.mjs"
   },
   "dependencies": {
@@ -37,6 +38,7 @@
     "@types/react-dom": "^19",
     "drizzle-kit": "^0.31.11",
     "tailwindcss": "^4.3.3",
-    "typescript": "~5.9"
+    "typescript": "~5.9",
+    "vitest": "^3.2.7"
   }
 }

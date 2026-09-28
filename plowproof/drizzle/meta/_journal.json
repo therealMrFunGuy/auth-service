@@ -22,6 +22,13 @@
       "when": 1790619573822,
       "tag": "0002_proof_emails",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1790634853826,
+      "tag": "0003_company_settings",
+      "breakpoints": true
     }
   ]
 }

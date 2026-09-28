@@ -8,7 +8,7 @@ import { formatAddress } from "@/lib/address";
  * US Census Bureau geocoder: free, no API key, US addresses only.
  * Swap for Mapbox/Google later if you need rooftop accuracy or higher throughput.
  */
-async function geocodeOne(address: string): Promise<{ lat: number; lng: number } | null> {
+export async function geocodeOne(address: string): Promise<{ lat: number; lng: number } | null> {
   const url = new URL("https://geocoding.geo.census.gov/geocoder/locations/onelineaddress");
   url.searchParams.set("address", address);
   url.searchParams.set("benchmark", "Public_AR_Current");

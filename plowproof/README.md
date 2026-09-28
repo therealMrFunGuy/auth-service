@@ -21,6 +21,10 @@ Customer lists, crews, and (next) proof of service for snow removal contractors.
   (anything over 150 m is flagged), and which properties are still waiting.
 - **Sealed on Solana.** Ending a storm writes one memo transaction holding the Merkle root of every visit.
   Each visit gets a public proof page that re-checks the record, the photos, the batch, and the chain live.
+- **Route order.** Each driver's route runs first-out stops first, then standard, then last, and within each
+  group orders stops by distance, starting from the company yard (nearest-neighbor, then 2-opt). The next stop
+  is highlighted.
+- **Company settings.** Time zone (picked up from the owner's browser at sign-up) and yard address.
 - **Proof emailed to the customer.** When a visit uploads, customers with an email on file get the proof link
   automatically (replies go to the company owner). Turn it off per customer on the Customers page. The storm page
   shows whether each email went out, with "Email customer" / "Send again" buttons.
@@ -40,6 +44,7 @@ cp .env.example .env          # fill in the values
 openssl rand -base64 32       # paste into BETTER_AUTH_SECRET
 npm run db:migrate            # creates tables from drizzle/0000_init.sql
 npm run dev
+npm test                      # unit tests (route ordering, proof hashing)
 ```
 
 Open http://localhost:3000. With `RESEND_API_KEY` empty, sign-in and invite emails print to the
@@ -93,6 +98,8 @@ src/app/api/service/             Visit upload: idempotent, hashes photos server-
 src/lib/proof.ts                 Record hashing + Merkle tree (the part to audit)
 src/lib/storms.ts                Storm assignment, sealing batches on Solana
 src/lib/verify.ts                Live checks behind the proof page
+src/lib/route.ts                 Route ordering (pure, unit-tested)
+src/lib/company.ts               Company settings: time zone, yard
 src/lib/notify.ts                Proof email to the customer (sent once per visit)
 src/app/p/[token]/               Public proof page
 src/app/dashboard/storms/        Storm list, visit review, End storm / seal
@@ -130,5 +137,3 @@ see the address and photos. Share them with the customer or insurer who needs th
 
 - Text (SMS) the proof link to customers who have a phone but no email.
 - PDF storm report per customer for invoicing and slip-and-fall disputes.
-- Route ordering by distance within each priority group.
-- Per-company time zone setting (currently `APP_TIMEZONE`).

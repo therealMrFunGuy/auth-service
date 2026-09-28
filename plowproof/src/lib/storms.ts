@@ -5,12 +5,12 @@ import { db } from "@/db";
 import { anchor, serviceEvent, storm } from "@/db/schema";
 import { anchorMemo, merkleRoot } from "@/lib/proof";
 import { SOLANA_CLUSTER, writeMemo } from "@/lib/solana";
-import { TIMEZONE } from "@/lib/time";
+import { getTimezone } from "@/lib/company";
+import { fmtDate } from "@/lib/time";
 
 export const newProofToken = () => randomBytes(24).toString("base64url");
 
-const stormName = (d: Date) =>
-  `Storm of ${d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: TIMEZONE })}`;
+const stormName = (d: Date, tz: string) => `Storm of ${fmtDate(d, tz)}`;
 
 export async function openStorm(organizationId: string) {
   const [row] = await db
@@ -25,7 +25,7 @@ export async function openStorm(organizationId: string) {
 export async function startStorm(organizationId: string, name?: string, startedAt = new Date()) {
   const [row] = await db
     .insert(storm)
-    .values({ organizationId, name: name?.trim() || stormName(startedAt), startedAt })
+    .values({ organizationId, name: name?.trim() || stormName(startedAt, await getTimezone(organizationId)), startedAt })
     .returning();
   return row;
 }
