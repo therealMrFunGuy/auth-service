@@ -24,6 +24,9 @@ Customer lists, crews, and (next) proof of service for snow removal contractors.
 - **Route order.** Each driver's route runs first-out stops first, then standard, then last, and within each
   group orders stops by distance, starting from the company yard (nearest-neighbor, then 2-opt). The next stop
   is highlighted.
+- **PDF reports.** Per customer for any date range (defaults to the season, July 1 on), with times, GPS check,
+  notes, up to 3 photos per visit, Solana seal status, and clickable proof links — for invoices and slip-and-fall
+  claims. Per storm for the office. Each customer has a page with their full visit history.
 - **Company settings.** Time zone (picked up from the owner's browser at sign-up) and yard address.
 - **Proof emailed to the customer.** When a visit uploads, customers with an email on file get the proof link
   automatically (replies go to the company owner). Turn it off per customer on the Customers page. The storm page
@@ -98,6 +101,8 @@ src/app/api/service/             Visit upload: idempotent, hashes photos server-
 src/lib/proof.ts                 Record hashing + Merkle tree (the part to audit)
 src/lib/storms.ts                Storm assignment, sealing batches on Solana
 src/lib/verify.ts                Live checks behind the proof page
+src/lib/report.ts                PDF reports (pdf-lib, standard fonts)
+src/app/api/reports/             Customer and storm PDF endpoints
 src/lib/route.ts                 Route ordering (pure, unit-tested)
 src/lib/company.ts               Company settings: time zone, yard
 src/lib/notify.ts                Proof email to the customer (sent once per visit)
@@ -136,4 +141,3 @@ see the address and photos. Share them with the customer or insurer who needs th
 ## Next ideas
 
 - Text (SMS) the proof link to customers who have a phone but no email.
-- PDF storm report per customer for invoicing and slip-and-fall disputes.

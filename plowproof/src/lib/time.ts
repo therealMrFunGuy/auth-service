@@ -35,3 +35,39 @@ export const TIMEZONE_CHOICES = [
   { value: "America/Vancouver", label: "Pacific (Vancouver)" },
   { value: "America/Anchorage", label: "Alaska" },
 ];
+
+/** Milliseconds the zone is ahead of UTC at instant `d` (negative in the Americas). */
+function zoneOffsetMs(d: Date, timeZone: string) {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat("en-US", { timeZone, hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" })
+      .formatToParts(d)
+      .map((p) => [p.type, p.value]),
+  );
+  const asUtc = Date.UTC(+parts.year, +parts.month - 1, +parts.day, +parts.hour, +parts.minute, +parts.second);
+  return asUtc - Math.floor(d.getTime() / 1000) * 1000;
+}
+
+/** Midnight at the start of `yyyy-mm-dd` in `timeZone`, as a UTC instant. */
+export function startOfDayIn(ymd: string, timeZone: string): Date {
+  const [y, m, d] = ymd.split("-").map(Number);
+  const guess = Date.UTC(y, m - 1, d);
+  let t = guess - zoneOffsetMs(new Date(guess), timeZone);
+  t = guess - zoneOffsetMs(new Date(t), timeZone); // second pass settles DST edges
+  return new Date(t);
+}
+
+/** `yyyy-mm-dd` for instant `d` as seen in `timeZone`. */
+export const ymdIn = (d: Date, timeZone: string) =>
+  new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
+
+/** Snow seasons run July 1 to June 30. Returns the start of the season containing `d`. */
+export function seasonStartYmd(d: Date, timeZone: string) {
+  const [y, m] = ymdIn(d, timeZone).split("-").map(Number);
+  return `${m >= 7 ? y : y - 1}-07-01`;
+}
+
+/** Calendar arithmetic on `yyyy-mm-dd` strings. */
+export function addDays(ymd: string, days: number) {
+  const [y, m, d] = ymd.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
+}

@@ -66,7 +66,7 @@ export default async function CustomersPage() {
             {rows.map((r) => (
               <tr key={r.id} className="border-b border-frost last:border-0 align-top">
                 <td className="px-4 py-3">
-                  <div className="font-semibold">{r.name}</div>
+                  <Link href={`/dashboard/customers/${r.id}`} className="font-semibold underline-offset-4 hover:underline">{r.name}</Link>
                   <div className="text-sm text-slush">{r.serviceType === "commercial" ? "Commercial" : "Residential"}</div>
                   {r.phone && <div className="text-sm text-slush">{r.phone}</div>}
                   {r.email && (

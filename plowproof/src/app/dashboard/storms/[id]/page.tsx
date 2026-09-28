@@ -84,6 +84,11 @@ export default async function StormPage({ params }: { params: Promise<{ id: stri
         <div className="mt-4">
           <StormControls stormId={s.id} isOpen={!s.endedAt} unsealed={unsealed} />
         </div>
+        {visits.length > 0 && (
+          <a href={`/api/reports/storm/${s.id}`} target="_blank" rel="noopener" className="mt-3 inline-block font-semibold underline">
+            Download storm report (PDF)
+          </a>
+        )}
       </div>
 
       {anchors.length > 0 && (
