@@ -40,6 +40,8 @@ export const customer = pgTable(
     notes: text("notes"),
     /** Email the proof page link to this customer after each visit (needs `email`). */
     emailProof: boolean("email_proof").notNull().default(true),
+    /** Text the proof link after each visit (needs `phone`). Off by default: only with the customer's OK. */
+    textProof: boolean("text_proof").notNull().default(false),
 
     /** ai_import | manual */
     source: text("source").notNull().default("manual"),
@@ -143,6 +145,8 @@ export const serviceEvent = pgTable(
     /** Delivery status of the proof email. Not part of recordHash; safe to update. */
     customerEmailedAt: timestamp("customer_emailed_at", tz),
     customerEmailError: text("customer_email_error"),
+    customerTextedAt: timestamp("customer_texted_at", tz),
+    customerTextError: text("customer_text_error"),
   },
   (t) => [
     index("service_event_org_storm_idx").on(t.organizationId, t.stormId),

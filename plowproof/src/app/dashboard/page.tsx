@@ -6,7 +6,7 @@ import { customer } from "@/db/schema";
 import { formatAddress } from "@/lib/address";
 import { requireDispatcher } from "@/lib/session";
 import { PriorityMark } from "@/components/PriorityMark";
-import { CustomerRowActions, EmailProofToggle, RetryGeocodeButton } from "./CustomerActions";
+import { CustomerRowActions, ProofNoticeToggle, RetryGeocodeButton } from "./CustomerActions";
 
 export const metadata: Metadata = { title: "Customers" };
 
@@ -69,12 +69,9 @@ export default async function CustomersPage() {
                   <Link href={`/dashboard/customers/${r.id}`} className="font-semibold underline-offset-4 hover:underline">{r.name}</Link>
                   <div className="text-sm text-slush">{r.serviceType === "commercial" ? "Commercial" : "Residential"}</div>
                   {r.phone && <div className="text-sm text-slush">{r.phone}</div>}
-                  {r.email && (
-                    <>
-                      <div className="text-sm text-slush">{r.email}</div>
-                      <EmailProofToggle id={r.id} on={r.emailProof} />
-                    </>
-                  )}
+                  {r.email && <div className="text-sm text-slush">{r.email}</div>}
+                  {r.email && <ProofNoticeToggle id={r.id} channel="email" on={r.emailProof} />}
+                  {r.phone && <ProofNoticeToggle id={r.id} channel="text" on={r.textProof} />}
                 </td>
                 <td className="px-4 py-3">
                   {formatAddress(r)}

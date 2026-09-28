@@ -28,9 +28,10 @@ Customer lists, crews, and (next) proof of service for snow removal contractors.
   notes, up to 3 photos per visit, Solana seal status, and clickable proof links — for invoices and slip-and-fall
   claims. Per storm for the office. Each customer has a page with their full visit history.
 - **Company settings.** Time zone (picked up from the owner's browser at sign-up) and yard address.
-- **Proof emailed to the customer.** When a visit uploads, customers with an email on file get the proof link
-  automatically (replies go to the company owner). Turn it off per customer on the Customers page. The storm page
-  shows whether each email went out, with "Email customer" / "Send again" buttons.
+- **Proof sent to the customer.** When a visit uploads, the customer gets the proof link by email (on by default
+  when there's an address; replies go to the company owner) and/or by text (off by default; turn it on only for
+  customers who agreed to texts). Both are per-customer toggles on the Customers page. The storm page shows what
+  went out, with "Email/Text customer" and "again" buttons.
 
 ## Stack
 
@@ -51,7 +52,7 @@ npm test                      # unit tests (route ordering, proof hashing)
 ```
 
 Open http://localhost:3000. With `RESEND_API_KEY` empty, sign-in and invite emails print to the
-terminal, so you can click the links without setting up email.
+terminal, so you can click the links without setting up email. Texts do the same without `TWILIO_*`.
 
 For production, verify your sending domain in Resend and set `EMAIL_FROM` to an address on it.
 
@@ -105,7 +106,8 @@ src/lib/report.ts                PDF reports (pdf-lib, standard fonts)
 src/app/api/reports/             Customer and storm PDF endpoints
 src/lib/route.ts                 Route ordering (pure, unit-tested)
 src/lib/company.ts               Company settings: time zone, yard
-src/lib/notify.ts                Proof email to the customer (sent once per visit)
+src/lib/notify.ts                Proof email and text to the customer (each sent once per visit)
+src/lib/sms.ts                   Twilio sender, phone number normalizing
 src/app/p/[token]/               Public proof page
 src/app/dashboard/storms/        Storm list, visit review, End storm / seal
 src/db/schema.ts                 customer table (+ re-exports Better Auth tables)
@@ -140,4 +142,3 @@ see the address and photos. Share them with the customer or insurer who needs th
 
 ## Next ideas
 
-- Text (SMS) the proof link to customers who have a phone but no email.

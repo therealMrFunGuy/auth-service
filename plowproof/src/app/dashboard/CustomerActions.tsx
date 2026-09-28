@@ -1,7 +1,7 @@
 "use client";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { deleteCustomer, retryGeocoding, setEmailProof } from "./actions";
+import { deleteCustomer, retryGeocoding, setProofNotice } from "./actions";
 
 export function CustomerRowActions({ id, name }: { id: string; name: string }) {
   const [pending, start] = useTransition();
@@ -40,20 +40,23 @@ export function RetryGeocodeButton() {
   );
 }
 
-export function EmailProofToggle({ id, on }: { id: string; on: boolean }) {
+export function ProofNoticeToggle({ id, channel, on }: { id: string; channel: "email" | "text"; on: boolean }) {
   const [pending, start] = useTransition();
   return (
-    <label className="mt-1 flex items-center gap-1.5 text-sm text-slush">
+    <label
+      className="mt-1 flex items-center gap-1.5 text-sm text-slush"
+      title={channel === "text" ? "Only turn on for customers who agreed to get texts from you. They can reply STOP any time." : undefined}
+    >
       <input
         type="checkbox"
         checked={on}
         disabled={pending}
         onChange={(e) => {
           const next = e.target.checked;
-          start(() => setEmailProof(id, next));
+          start(() => setProofNotice(id, channel, next));
         }}
       />
-      Email proof after each visit
+      {channel === "email" ? "Email proof after each visit" : "Text proof after each visit"}
     </label>
   );
 }

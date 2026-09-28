@@ -1,8 +1,8 @@
 "use client";
 import { useState, useTransition } from "react";
-import type { ProofEmailOutcome } from "@/lib/notify";
+import type { Channel, NoticeOutcome } from "@/lib/notify";
 import type { AnchorOutcome } from "@/lib/storms";
-import { anchorNowAction, emailProofAction, endStormAction, retryAnchorAction } from "../actions";
+import { anchorNowAction, endStormAction, retryAnchorAction, sendProofAction } from "../actions";
 
 function describe(o: AnchorOutcome) {
   if (o.status === "nothing") return "Nothing new to seal.";
@@ -76,13 +76,19 @@ export function AnchorRetry({ anchorId }: { anchorId: string }) {
   );
 }
 
-function describeEmail(o: ProofEmailOutcome) {
+const SKIP_REASON: Record<string, string> = {
+  no_email: "No email on file",
+  no_phone: "No phone on file",
+  bad_phone: "The phone number isn't one we can text",
+};
+
+function describeNotice(o: NoticeOutcome) {
   if (o.status === "sent") return `Sent to ${o.to}`;
   if (o.status === "failed") return `Not sent: ${o.error}`;
-  return o.reason === "no_email" ? "No email on file" : "Not sent";
+  return SKIP_REASON[o.reason] ?? "Not sent";
 }
 
-export function SendProofButton({ eventId, label }: { eventId: string; label: string }) {
+export function SendProofButton({ eventId, channel, label }: { eventId: string; channel: Channel; label: string }) {
   const [pending, start] = useTransition();
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   return (
@@ -93,8 +99,8 @@ export function SendProofButton({ eventId, label }: { eventId: string; label: st
         disabled={pending}
         onClick={() =>
           start(async () => {
-            const o = await emailProofAction(eventId);
-            setMsg({ ok: o.status === "sent", text: describeEmail(o) });
+            const o = await sendProofAction(eventId, channel);
+            setMsg({ ok: o.status === "sent", text: describeNotice(o) });
           })
         }
       >

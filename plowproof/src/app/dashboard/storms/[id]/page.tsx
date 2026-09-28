@@ -19,30 +19,40 @@ function location(distanceM: number | null, accuracyM: number | null) {
   return { text: `${distanceM} m away`, warn: false };
 }
 
-function ProofEmailCell({
+function NoticeStatus({
   eventId,
-  emailedAt,
+  channel,
+  sentAt,
   error,
-  cust,
+  hasContact,
+  enabled,
   tz,
 }: {
-  tz: string;
   eventId: string;
-  emailedAt: Date | null;
+  channel: "email" | "text";
+  sentAt: Date | null;
   error: string | null;
-  cust?: { email: string | null; emailProof: boolean };
+  hasContact: boolean;
+  enabled: boolean;
+  tz: string;
 }) {
-  if (!cust?.email) return <div className="mt-1 text-sm text-slush">No customer email</div>;
+  const noun = channel === "email" ? "email" : "phone";
+  if (!hasContact) return <div className="text-slush">No customer {noun}</div>;
+  const verb = channel === "email" ? "Emailed" : "Texted";
   return (
-    <div className="mt-1 space-y-1 text-sm">
-      {emailedAt ? (
-        <div className="text-slush">Emailed {fmtTime(emailedAt, tz)}</div>
+    <div className="space-y-0.5">
+      {sentAt ? (
+        <div className="text-slush">{verb} {fmtTime(sentAt, tz)}</div>
       ) : error ? (
-        <div className="text-brake" title={error}>Email failed</div>
-      ) : !cust.emailProof ? (
-        <div className="text-slush">Proof emails off</div>
+        <div className="text-brake" title={error}>{channel === "email" ? "Email" : "Text"} failed</div>
+      ) : !enabled ? (
+        <div className="text-slush">Proof {channel === "email" ? "emails" : "texts"} off</div>
       ) : null}
-      <SendProofButton eventId={eventId} label={emailedAt ? "Send again" : "Email customer"} />
+      <SendProofButton
+        eventId={eventId}
+        channel={channel}
+        label={sentAt ? (channel === "email" ? "Email again" : "Text again") : channel === "email" ? "Email customer" : "Text customer"}
+      />
     </div>
   );
 }
@@ -57,7 +67,7 @@ export default async function StormPage({ params }: { params: Promise<{ id: stri
   const [visits, anchors, customers, tz] = await Promise.all([
     db.select().from(serviceEvent).where(eq(serviceEvent.stormId, s.id)).orderBy(desc(serviceEvent.completedAt)),
     db.select().from(anchor).where(eq(anchor.stormId, s.id)).orderBy(asc(anchor.createdAt)),
-    db.select({ id: customer.id, name: customer.name, street: customer.street, priority: customer.priority, email: customer.email, emailProof: customer.emailProof }).from(customer).where(eq(customer.organizationId, orgId)).orderBy(asc(customer.priority), asc(customer.street)),
+    db.select({ id: customer.id, name: customer.name, street: customer.street, priority: customer.priority, email: customer.email, emailProof: customer.emailProof, phone: customer.phone, textProof: customer.textProof }).from(customer).where(eq(customer.organizationId, orgId)).orderBy(asc(customer.priority), asc(customer.street)),
     getTimezone(orgId),
   ]);
 
@@ -163,13 +173,26 @@ export default async function StormPage({ params }: { params: Promise<{ id: stri
                       </td>
                       <td className="px-4 py-3 text-right">
                         <Link href={`/p/${v.proofToken}`} className="text-sm font-semibold underline">Proof page</Link>
-                        <ProofEmailCell
-                          eventId={v.id}
-                          emailedAt={v.customerEmailedAt}
-                          error={v.customerEmailError}
-                          cust={v.customerId ? byId.get(v.customerId) : undefined}
-                          tz={tz}
-                        />
+                        <div className="mt-2 space-y-2 text-sm">
+                          <NoticeStatus
+                            eventId={v.id}
+                            channel="email"
+                            sentAt={v.customerEmailedAt}
+                            error={v.customerEmailError}
+                            hasContact={!!byId.get(v.customerId ?? "")?.email}
+                            enabled={!!byId.get(v.customerId ?? "")?.emailProof}
+                            tz={tz}
+                          />
+                          <NoticeStatus
+                            eventId={v.id}
+                            channel="text"
+                            sentAt={v.customerTextedAt}
+                            error={v.customerTextError}
+                            hasContact={!!byId.get(v.customerId ?? "")?.phone}
+                            enabled={!!byId.get(v.customerId ?? "")?.textProof}
+                            tz={tz}
+                          />
+                        </div>
                       </td>
                     </tr>
                   );

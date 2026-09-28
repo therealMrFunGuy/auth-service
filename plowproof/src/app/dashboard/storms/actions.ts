@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { anchor, serviceEvent, storm } from "@/db/schema";
-import { emailVisitProof, type ProofEmailOutcome } from "@/lib/notify";
+import { emailVisitProof, textVisitProof, type Channel, type NoticeOutcome } from "@/lib/notify";
 import { requireDispatcher } from "@/lib/session";
 import { anchorStorm, openStorm, sendAnchor, startStorm, type AnchorOutcome } from "@/lib/storms";
 
@@ -49,14 +49,14 @@ export async function retryAnchorAction(anchorId: string): Promise<AnchorOutcome
   return outcome;
 }
 
-export async function emailProofAction(eventId: string): Promise<ProofEmailOutcome> {
+export async function sendProofAction(eventId: string, channel: Channel): Promise<NoticeOutcome> {
   const { membership } = await requireDispatcher();
   const [ev] = await db
     .select({ id: serviceEvent.id, stormId: serviceEvent.stormId })
     .from(serviceEvent)
     .where(and(eq(serviceEvent.id, eventId), eq(serviceEvent.organizationId, membership.organizationId)));
   if (!ev) return { status: "skipped", reason: "not_found" };
-  const outcome = await emailVisitProof(ev.id, { resend: true });
+  const outcome = await (channel === "email" ? emailVisitProof : textVisitProof)(ev.id, { resend: true });
   revalidatePath(`/dashboard/storms/${ev.stormId}`);
   return outcome;
 }

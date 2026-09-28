@@ -29,6 +29,13 @@
       "when": 1790634853826,
       "tag": "0003_company_settings",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1790635389842,
+      "tag": "0004_proof_texts",
+      "breakpoints": true
     }
   ]
 }

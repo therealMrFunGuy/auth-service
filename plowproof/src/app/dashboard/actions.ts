@@ -27,11 +27,11 @@ export async function retryGeocoding() {
   return rows.length;
 }
 
-export async function setEmailProof(id: string, on: boolean) {
+export async function setProofNotice(id: string, channel: "email" | "text", on: boolean) {
   const { membership } = await requireDispatcher();
   await db
     .update(customer)
-    .set({ emailProof: on })
+    .set(channel === "email" ? { emailProof: on } : { textProof: on })
     .where(and(eq(customer.id, id), eq(customer.organizationId, membership.organizationId)));
   revalidatePath("/dashboard");
 }
