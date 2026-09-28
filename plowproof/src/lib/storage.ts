@@ -2,13 +2,18 @@ import "server-only";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { AwsClient } from "aws4fetch";
+import { eq } from "drizzle-orm";
+import { db } from "@/db";
+import { storedObject } from "@/db/schema";
 
 /**
  * Photo storage.
  *   STORAGE_DRIVER=local  writes to ./.data/uploads (dev, or a single self-hosted box)
  *   STORAGE_DRIVER=s3     any S3-compatible bucket: Cloudflare R2, AWS S3, MinIO
+ *   STORAGE_DRIVER=db     Postgres bytea. Zero setup on Vercel; fine for testing and small crews.
+ * On Vercel the disk is read-only, so the default there is "db".
  */
-const DRIVER = process.env.STORAGE_DRIVER ?? "local";
+const DRIVER = process.env.STORAGE_DRIVER ?? (process.env.VERCEL ? "db" : "local");
 const LOCAL_ROOT = path.join(process.cwd(), ".data", "uploads");
 
 let s3: AwsClient | null = null;
@@ -36,6 +41,11 @@ function localPath(key: string) {
 }
 
 export async function putObject(key: string, body: Buffer, contentType: string) {
+  if (DRIVER === "db") {
+    // Keys are content-addressed, so a repeat write is the same bytes.
+    await db.insert(storedObject).values({ key, contentType, data: body }).onConflictDoNothing();
+    return;
+  }
   if (DRIVER === "s3") {
     const res = await s3Client().fetch(s3Url(key), {
       method: "PUT",
@@ -51,6 +61,10 @@ export async function putObject(key: string, body: Buffer, contentType: string) 
 }
 
 export async function getObject(key: string): Promise<Buffer | null> {
+  if (DRIVER === "db") {
+    const [row] = await db.select({ data: storedObject.data }).from(storedObject).where(eq(storedObject.key, key));
+    return row ? Buffer.from(row.data) : null;
+  }
   if (DRIVER === "s3") {
     const res = await s3Client().fetch(s3Url(key));
     if (res.status === 404) return null;

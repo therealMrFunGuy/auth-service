@@ -36,6 +36,13 @@
       "when": 1790635389842,
       "tag": "0004_proof_texts",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1790635547080,
+      "tag": "0005_stored_objects",
+      "breakpoints": true
     }
   ]
 }

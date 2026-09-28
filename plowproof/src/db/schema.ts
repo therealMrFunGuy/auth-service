@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { boolean, doublePrecision, index, integer, jsonb, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import { boolean, customType, doublePrecision, index, integer, jsonb, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 import { organization, user } from "./auth-schema";
 
 // Better Auth tables (user, session, organization, member, invitation, ...).
@@ -63,6 +63,16 @@ export const customerRelations = relations(customer, ({ one, many }) => ({
 }));
 
 const tz = { withTimezone: true } as const;
+
+const bytea = customType<{ data: Buffer }>({ dataType: () => "bytea" });
+
+/** Photo bytes when STORAGE_DRIVER=db (serverless hosts without a bucket). Keys match the S3/local layout. */
+export const storedObject = pgTable("stored_object", {
+  key: text("key").primaryKey(),
+  contentType: text("content_type").notNull(),
+  data: bytea("data").notNull(),
+  createdAt: timestamp("created_at", tz).defaultNow().notNull(),
+});
 
 /** Per-company preferences. A missing row means defaults (APP_TIMEZONE, no yard). */
 export const companySettings = pgTable("company_settings", {

@@ -70,6 +70,17 @@ Each storm is one transaction (about 0.000005 SOL). This key only pays fees, so 
 For a fully local chain: `solana-test-validator`, then `SOLANA_CLUSTER=localnet` and
 `SOLANA_RPC_URL=http://127.0.0.1:8899`.
 
+### Deploying to Vercel
+
+1. Import the repo in Vercel with **Root Directory** `plowproof`. `vercel.json` runs the database migrations
+   before each build.
+2. Add Postgres from the project's **Storage** tab (Neon works; it sets `DATABASE_URL`). Pooled URLs
+   (`-pooler` hosts, PgBouncer) are detected and prepared statements turned off.
+3. Set `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` and `NEXT_PUBLIC_APP_URL` (the production URL),
+   `RESEND_API_KEY` + `EMAIL_FROM`, and `ANTHROPIC_API_KEY`. Solana and Twilio are optional.
+4. Photos: on Vercel, `STORAGE_DRIVER` defaults to `db` (photos stored in Postgres), which is fine for testing.
+   For a real season, set `STORAGE_DRIVER=s3` and point it at an R2 bucket.
+
 ### Testing on a real phone
 
 Phones only allow GPS and the camera on HTTPS. With Tailscale: `tailscale serve 3000`, then open the
