@@ -1,10 +1,11 @@
 import { and, eq } from "drizzle-orm";
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/db";
 import { customer, serviceEvent, type PhotoRef } from "@/db/schema";
 import { formatAddress } from "@/lib/address";
 import { distanceMeters } from "@/lib/geo";
+import { emailVisitProof } from "@/lib/notify";
 import { hashBytes, hashRecord } from "@/lib/proof";
 import { getMembership, getSession } from "@/lib/session";
 import { putObject } from "@/lib/storage";
@@ -123,6 +124,14 @@ export async function POST(req: Request) {
       .from(serviceEvent)
       .where(and(eq(serviceEvent.organizationId, orgId), eq(serviceEvent.clientId, f.clientId)));
     return json({ ...winner, duplicate: true });
+  }
+
+  // Send the proof link to the customer once the driver has their response.
+  if (cust.email && cust.emailProof) {
+    after(async () => {
+      const outcome = await emailVisitProof(id);
+      if (outcome.status === "failed") console.error(`Proof email for visit ${id} failed: ${outcome.error}`);
+    });
   }
   return json({ id, proofToken }, 201);
 }

@@ -1,7 +1,8 @@
 "use client";
 import { useState, useTransition } from "react";
+import type { ProofEmailOutcome } from "@/lib/notify";
 import type { AnchorOutcome } from "@/lib/storms";
-import { anchorNowAction, endStormAction, retryAnchorAction } from "../actions";
+import { anchorNowAction, emailProofAction, endStormAction, retryAnchorAction } from "../actions";
 
 function describe(o: AnchorOutcome) {
   if (o.status === "nothing") return "Nothing new to seal.";
@@ -71,6 +72,35 @@ export function AnchorRetry({ anchorId }: { anchorId: string }) {
       >
         {pending ? "Sealing…" : "Try again"}
       </button>
+    </div>
+  );
+}
+
+function describeEmail(o: ProofEmailOutcome) {
+  if (o.status === "sent") return `Sent to ${o.to}`;
+  if (o.status === "failed") return `Not sent: ${o.error}`;
+  return o.reason === "no_email" ? "No email on file" : "Not sent";
+}
+
+export function SendProofButton({ eventId, label }: { eventId: string; label: string }) {
+  const [pending, start] = useTransition();
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  return (
+    <div className="flex flex-col items-end gap-1">
+      <button
+        type="button"
+        className="text-sm font-semibold text-slush underline disabled:opacity-60"
+        disabled={pending}
+        onClick={() =>
+          start(async () => {
+            const o = await emailProofAction(eventId);
+            setMsg({ ok: o.status === "sent", text: describeEmail(o) });
+          })
+        }
+      >
+        {pending ? "Sending…" : label}
+      </button>
+      {msg && <span role="status" className={`text-sm ${msg.ok ? "text-thaw" : "text-brake"}`}>{msg.text}</span>}
     </div>
   );
 }

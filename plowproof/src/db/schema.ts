@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { doublePrecision, index, integer, jsonb, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import { boolean, doublePrecision, index, integer, jsonb, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 import { organization, user } from "./auth-schema";
 
 // Better Auth tables (user, session, organization, member, invitation, ...).
@@ -38,6 +38,8 @@ export const customer = pgTable(
     /** 1 = first out (hospitals, retail lots), 3 = last. */
     priority: integer("priority").notNull().default(2),
     notes: text("notes"),
+    /** Email the proof page link to this customer after each visit (needs `email`). */
+    emailProof: boolean("email_proof").notNull().default(true),
 
     /** ai_import | manual */
     source: text("source").notNull().default("manual"),
@@ -118,6 +120,10 @@ export const serviceEvent = pgTable(
     /** Unguessable token for the public proof page /p/[token]. */
     proofToken: text("proof_token").notNull(),
     anchorId: text("anchor_id").references(() => anchor.id, { onDelete: "set null" }),
+
+    /** Delivery status of the proof email. Not part of recordHash; safe to update. */
+    customerEmailedAt: timestamp("customer_emailed_at", tz),
+    customerEmailError: text("customer_email_error"),
   },
   (t) => [
     index("service_event_org_storm_idx").on(t.organizationId, t.stormId),

@@ -26,3 +26,12 @@ export async function retryGeocoding() {
   });
   return rows.length;
 }
+
+export async function setEmailProof(id: string, on: boolean) {
+  const { membership } = await requireDispatcher();
+  await db
+    .update(customer)
+    .set({ emailProof: on })
+    .where(and(eq(customer.id, id), eq(customer.organizationId, membership.organizationId)));
+  revalidatePath("/dashboard");
+}

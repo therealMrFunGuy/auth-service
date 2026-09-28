@@ -4,7 +4,8 @@ import { and, eq, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
-import { anchor, storm } from "@/db/schema";
+import { anchor, serviceEvent, storm } from "@/db/schema";
+import { emailVisitProof, type ProofEmailOutcome } from "@/lib/notify";
 import { requireDispatcher } from "@/lib/session";
 import { anchorStorm, openStorm, sendAnchor, startStorm, type AnchorOutcome } from "@/lib/storms";
 
@@ -45,5 +46,17 @@ export async function retryAnchorAction(anchorId: string): Promise<AnchorOutcome
   if (!a || a.status === "confirmed") return { status: "nothing" };
   const outcome = await sendAnchor(a.id);
   revalidatePath(`/dashboard/storms/${a.stormId}`);
+  return outcome;
+}
+
+export async function emailProofAction(eventId: string): Promise<ProofEmailOutcome> {
+  const { membership } = await requireDispatcher();
+  const [ev] = await db
+    .select({ id: serviceEvent.id, stormId: serviceEvent.stormId })
+    .from(serviceEvent)
+    .where(and(eq(serviceEvent.id, eventId), eq(serviceEvent.organizationId, membership.organizationId)));
+  if (!ev) return { status: "skipped", reason: "not_found" };
+  const outcome = await emailVisitProof(ev.id, { resend: true });
+  revalidatePath(`/dashboard/storms/${ev.stormId}`);
   return outcome;
 }

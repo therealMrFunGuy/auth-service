@@ -3,18 +3,18 @@ import { Resend } from "resend";
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 const FROM = process.env.EMAIL_FROM ?? "PlowProof <no-reply@example.com>";
 
-type Mail = { to: string; subject: string; text: string; html: string };
+type Mail = { to: string; subject: string; text: string; html: string; replyTo?: string };
 
 /**
  * Sends through Resend when RESEND_API_KEY is set.
  * Without a key (local dev), prints the email to the terminal so you can click the link.
  */
-export async function sendEmail({ to, subject, text, html }: Mail) {
+export async function sendEmail({ to, subject, text, html, replyTo }: Mail) {
   if (!resend) {
     console.log(`\n── Email (dev, not sent) ──\nTo: ${to}\nSubject: ${subject}\n\n${text}\n──────────────────────────\n`);
     return;
   }
-  const { error } = await resend.emails.send({ from: FROM, to, subject, text, html });
+  const { error } = await resend.emails.send({ from: FROM, to, subject, text, html, replyTo });
   if (error) throw new Error(`Email to ${to} failed: ${error.message}`);
 }
 

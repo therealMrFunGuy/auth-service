@@ -6,7 +6,7 @@ import { customer } from "@/db/schema";
 import { formatAddress } from "@/lib/address";
 import { requireDispatcher } from "@/lib/session";
 import { PriorityMark } from "@/components/PriorityMark";
-import { CustomerRowActions, RetryGeocodeButton } from "./CustomerActions";
+import { CustomerRowActions, EmailProofToggle, RetryGeocodeButton } from "./CustomerActions";
 
 export const metadata: Metadata = { title: "Customers" };
 
@@ -69,6 +69,12 @@ export default async function CustomersPage() {
                   <div className="font-semibold">{r.name}</div>
                   <div className="text-sm text-slush">{r.serviceType === "commercial" ? "Commercial" : "Residential"}</div>
                   {r.phone && <div className="text-sm text-slush">{r.phone}</div>}
+                  {r.email && (
+                    <>
+                      <div className="text-sm text-slush">{r.email}</div>
+                      <EmailProofToggle id={r.id} on={r.emailProof} />
+                    </>
+                  )}
                 </td>
                 <td className="px-4 py-3">
                   {formatAddress(r)}

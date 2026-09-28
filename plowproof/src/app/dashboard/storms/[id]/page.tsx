@@ -8,7 +8,7 @@ import { FAR_FROM_PROPERTY_M } from "@/lib/geo";
 import { requireDispatcher } from "@/lib/session";
 import { explorerUrl } from "@/lib/solana";
 import { fmtDateTime, fmtTime } from "@/lib/time";
-import { AnchorRetry, StormControls } from "./StormControls";
+import { AnchorRetry, SendProofButton, StormControls } from "./StormControls";
 
 export const metadata: Metadata = { title: "Storm" };
 
@@ -16,6 +16,32 @@ function location(distanceM: number | null, accuracyM: number | null) {
   if (distanceM == null) return accuracyM == null ? { text: "No GPS", warn: true } : { text: "Property not on map", warn: false };
   if (distanceM > FAR_FROM_PROPERTY_M) return { text: `${distanceM} m away`, warn: true };
   return { text: `${distanceM} m away`, warn: false };
+}
+
+function ProofEmailCell({
+  eventId,
+  emailedAt,
+  error,
+  cust,
+}: {
+  eventId: string;
+  emailedAt: Date | null;
+  error: string | null;
+  cust?: { email: string | null; emailProof: boolean };
+}) {
+  if (!cust?.email) return <div className="mt-1 text-sm text-slush">No customer email</div>;
+  return (
+    <div className="mt-1 space-y-1 text-sm">
+      {emailedAt ? (
+        <div className="text-slush">Emailed {fmtTime(emailedAt)}</div>
+      ) : error ? (
+        <div className="text-brake" title={error}>Email failed</div>
+      ) : !cust.emailProof ? (
+        <div className="text-slush">Proof emails off</div>
+      ) : null}
+      <SendProofButton eventId={eventId} label={emailedAt ? "Send again" : "Email customer"} />
+    </div>
+  );
 }
 
 export default async function StormPage({ params }: { params: Promise<{ id: string }> }) {
@@ -28,10 +54,11 @@ export default async function StormPage({ params }: { params: Promise<{ id: stri
   const [visits, anchors, customers] = await Promise.all([
     db.select().from(serviceEvent).where(eq(serviceEvent.stormId, s.id)).orderBy(desc(serviceEvent.completedAt)),
     db.select().from(anchor).where(eq(anchor.stormId, s.id)).orderBy(asc(anchor.createdAt)),
-    db.select({ id: customer.id, name: customer.name, street: customer.street, priority: customer.priority }).from(customer).where(eq(customer.organizationId, orgId)).orderBy(asc(customer.priority), asc(customer.street)),
+    db.select({ id: customer.id, name: customer.name, street: customer.street, priority: customer.priority, email: customer.email, emailProof: customer.emailProof }).from(customer).where(eq(customer.organizationId, orgId)).orderBy(asc(customer.priority), asc(customer.street)),
   ]);
 
   const served = new Set(visits.map((v) => v.customerId));
+  const byId = new Map(customers.map((c) => [c.id, c]));
   const notYet = customers.filter((c) => !served.has(c.id));
   const unsealed = visits.filter((v) => !v.anchorId).length;
   const flagged = visits.filter((v) => location(v.distanceM, v.accuracyM).warn).length;
@@ -127,6 +154,12 @@ export default async function StormPage({ params }: { params: Promise<{ id: stri
                       </td>
                       <td className="px-4 py-3 text-right">
                         <Link href={`/p/${v.proofToken}`} className="text-sm font-semibold underline">Proof page</Link>
+                        <ProofEmailCell
+                          eventId={v.id}
+                          emailedAt={v.customerEmailedAt}
+                          error={v.customerEmailError}
+                          cust={v.customerId ? byId.get(v.customerId) : undefined}
+                        />
                       </td>
                     </tr>
                   );
