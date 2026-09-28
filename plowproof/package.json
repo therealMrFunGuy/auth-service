@@ -1,0 +1,42 @@
+{
+  "name": "plowproof",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "auth:generate": "npx auth@latest generate --config src/lib/auth.ts --output src/db/auth-schema.ts",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio",
+    "solana:keygen": "node scripts/solana-keygen.mjs"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.128.0",
+    "@solana/web3.js": "^1.99.0",
+    "aws4fetch": "^1.0.20",
+    "better-auth": "^1.7.6",
+    "bs58": "^6.0.0",
+    "drizzle-orm": "^0.45.3",
+    "idb-keyval": "^6.3.0",
+    "next": "^16.3.6",
+    "postgres": "^3.4.9",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "resend": "^6.30.0",
+    "server-only": "^0.0.1",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^22",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "drizzle-kit": "^0.31.11",
+    "tailwindcss": "^4.3.3",
+    "typescript": "~5.9"
+  }
+}

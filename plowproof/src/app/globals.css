@@ -1,0 +1,93 @@
+@import "tailwindcss";
+
+/*
+  PlowProof tokens
+  snow   #EEF1F4  page background, the color of a plowed lot at dawn
+  salt   #FFFFFF  surfaces
+  asphalt#15202B  ink and primary actions
+  slush  #5B6875  secondary text
+  frost  #D3DCE4  lines and borders
+  beacon #F2A900  amber of a plow light; used only for attention
+  brake  #B8321C  errors and destructive actions
+  thaw   #2E7A4C  success
+  night  #16222E  driver screen, easy on night vision in the cab
+*/
+@theme {
+  --color-snow: #eef1f4;
+  --color-salt: #ffffff;
+  --color-asphalt: #15202b;
+  --color-slush: #5b6875;
+  --color-frost: #d3dce4;
+  --color-beacon: #f2a900;
+  --color-beacon-soft: #fdf1cc;
+  --color-brake: #b8321c;
+  --color-thaw: #2e7a4c;
+  --color-night: #16222e;
+  --color-night-2: #1f2f3e;
+  --color-night-line: #2f4356;
+
+  --font-sans: "Barlow", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-sign: "Barlow Condensed", "Arial Narrow", ui-sans-serif, system-ui, sans-serif;
+}
+
+html { -webkit-text-size-adjust: 100%; }
+body {
+  background: var(--color-snow);
+  color: var(--color-asphalt);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+/* The one loud element: blade-marker stripes along the top of every screen. */
+.hazard {
+  height: 6px;
+  background: repeating-linear-gradient(-45deg, var(--color-beacon) 0 12px, var(--color-asphalt) 12px 24px);
+}
+
+.sign { font-family: var(--font-sign); letter-spacing: 0.005em; }
+
+:focus-visible { outline: 3px solid var(--color-beacon); outline-offset: 2px; }
+
+/* Layered so Tailwind utilities (w-20, px-2, min-h-9) can override them. */
+@layer components {
+  .input {
+    width: 100%;
+    border: 1px solid var(--color-frost);
+    background: var(--color-salt);
+    border-radius: 4px;
+    padding: 0.625rem 0.75rem;
+    font: inherit;
+    color: inherit;
+  }
+  .input:focus { outline: none; border-color: var(--color-asphalt); box-shadow: 0 0 0 3px var(--color-beacon-soft); }
+  .input[aria-invalid="true"] { border-color: var(--color-brake); }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 2.75rem;
+    padding: 0 1.125rem;
+    border-radius: 4px;
+    font-weight: 600;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: background-color 120ms, border-color 120ms;
+  }
+  .btn:disabled { opacity: 0.55; cursor: not-allowed; }
+  .btn-primary { background: var(--color-asphalt); color: var(--color-salt); }
+  .btn-primary:hover:not(:disabled) { background: #22313f; }
+  .btn-quiet { background: transparent; border-color: var(--color-frost); color: var(--color-asphalt); }
+  .btn-quiet:hover:not(:disabled) { border-color: var(--color-asphalt); }
+  .btn-danger { background: transparent; color: var(--color-brake); padding: 0 0.5rem; min-height: 2.25rem; }
+  .btn-danger:hover:not(:disabled) { text-decoration: underline; }
+
+  .label { display: block; font-weight: 600; font-size: 0.9375rem; margin-bottom: 0.375rem; }
+  .hint { font-size: 0.875rem; color: var(--color-slush); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
