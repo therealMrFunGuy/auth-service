@@ -1,10 +1,9 @@
-import type Anthropic from "@anthropic-ai/sdk";
 import { and, eq, inArray } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { customer } from "@/db/schema";
 import { addressKey } from "@/lib/address";
-import { extractCustomers, type ExtractedCustomer } from "@/lib/ai-extract";
+import { AiError, extractCustomers, type ExtractedCustomer, type Part } from "@/lib/ai-extract";
 import type { ParseResponse, ParsedRow } from "@/lib/import-schema";
 import { getMembership, getSession, isDispatcher } from "@/lib/session";
 
@@ -12,15 +11,15 @@ export const maxDuration = 300;
 
 const MAX_FILES = 5;
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
-const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // Claude API per-image limit
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // keeps requests well under provider image limits
 const LINES_PER_CHUNK = 120;
-const CONCURRENCY = 4;
+const CONCURRENCY = 2; // free models allow 20 requests a minute
 
 const IMAGE_TYPES = { jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", webp: "image/webp", gif: "image/gif" } as const;
 const TEXT_EXT = new Set(["csv", "tsv", "txt", "text", "md"]);
 const HEADER_HINT = /name|address|street|city|phone|email|zip/i;
 
-type Job = { label: string; content: Anthropic.ContentBlockParam[] };
+type Job = { label: string; content: Part[] };
 
 const json = (body: ParseResponse, status = 200) => NextResponse.json(body, { status });
 
@@ -51,7 +50,7 @@ async function fileJobs(file: File): Promise<Job[] | string> {
     return [{
       label: file.name,
       content: [
-        { type: "document", source: { type: "base64", media_type: "application/pdf", data } },
+        { type: "file", file: { filename: file.name, file_data: `data:application/pdf;base64,${data}` } },
         { type: "text", text: "Extract every customer in this document." },
       ],
     }];
@@ -62,7 +61,7 @@ async function fileJobs(file: File): Promise<Job[] | string> {
     return [{
       label: file.name,
       content: [
-        { type: "image", source: { type: "base64", media_type: media, data } },
+        { type: "image_url", image_url: { url: `data:${media};base64,${data}` } },
         { type: "text", text: "This is a photo or screenshot of a customer list. Extract every customer in it." },
       ],
     }];
@@ -90,7 +89,7 @@ export async function POST(req: Request) {
   const membership = await getMembership();
   if (!membership || !isDispatcher(membership.role))
     return json({ error: "Only owners and admins can import customers." }, 403);
-  if (!process.env.ANTHROPIC_API_KEY) return json({ error: "ANTHROPIC_API_KEY is not set on the server." }, 500);
+  if (!process.env.OPENROUTER_API_KEY) return json({ error: "OPENROUTER_API_KEY is not set on the server." }, 500);
 
   const form = await req.formData();
   const text = String(form.get("text") ?? "").trim();
@@ -118,7 +117,7 @@ export async function POST(req: Request) {
       return customers;
     } catch (err) {
       console.error(`AI import failed for ${job.label}`, err);
-      warnings.push(`${job.label}: couldn't be read. Try again or paste it as text.`);
+      warnings.push(err instanceof AiError ? `${job.label}: ${err.message}` : `${job.label}: couldn't be read. Try again or paste it as text.`);
       return [] as ExtractedCustomer[];
     }
   });

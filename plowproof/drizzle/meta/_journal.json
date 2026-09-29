@@ -43,6 +43,13 @@
       "when": 1790635547080,
       "tag": "0005_stored_objects",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790648333413,
+      "tag": "0006_remove_solana",
+      "breakpoints": true
     }
   ]
 }

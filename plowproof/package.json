@@ -12,15 +12,11 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
-    "test": "vitest run",
-    "solana:keygen": "node scripts/solana-keygen.mjs"
+    "test": "vitest run"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.128.0",
-    "@solana/web3.js": "^1.99.0",
     "aws4fetch": "^1.0.20",
     "better-auth": "^1.7.6",
-    "bs58": "^6.0.0",
     "drizzle-orm": "^0.45.3",
     "idb-keyval": "^6.3.0",
     "next": "^16.3.6",

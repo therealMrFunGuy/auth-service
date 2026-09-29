@@ -20,7 +20,6 @@ export default async function StormsPage() {
       endedAt: storm.endedAt,
       snowfall: storm.snowfallInches,
       visits: sql<number>`count(${serviceEvent.id})::int`,
-      unanchored: sql<number>`count(${serviceEvent.id}) filter (where ${serviceEvent.anchorId} is null)::int`,
     })
     .from(storm)
     .leftJoin(serviceEvent, eq(serviceEvent.stormId, storm.id))
@@ -37,8 +36,8 @@ export default async function StormsPage() {
         <div>
           <h1 className="sign text-4xl font-bold">Storms</h1>
           <p className="mt-1 max-w-xl text-slush">
-            Every visit your drivers log is grouped by storm. When a storm ends, its records are sealed on Solana so
-            nobody can change them later.
+            Every visit your drivers log is grouped by storm, with times, GPS, and photos fingerprinted the moment
+            they upload.
           </p>
         </div>
         {!open && (
@@ -69,12 +68,7 @@ export default async function StormsPage() {
                     {r.snowfall != null ? `, ${r.snowfall}″ of snow` : ""}
                   </div>
                 </div>
-                <div className="text-right tabular-nums">
-                  <div className="font-semibold">{r.visits} visits</div>
-                  <div className={`text-sm ${r.unanchored > 0 && r.endedAt ? "text-brake" : "text-slush"}`}>
-                    {r.visits === 0 ? "" : r.unanchored === 0 ? "Sealed on Solana" : `${r.unanchored} not sealed yet`}
-                  </div>
-                </div>
+                <div className="text-right font-semibold tabular-nums">{r.visits} visits</div>
               </Link>
             </li>
           ))}

@@ -92,8 +92,8 @@ export async function emailVisitProof(eventId: string, opts: { resend?: boolean 
     heading: "Your snow removal is done",
     body:
       `${orgName} cleared the snow at ${ev.addressSnapshot} at ${fmtTime(ev.completedAt, tz)} on ${fmtDate(ev.completedAt, tz)}. ` +
-      `The proof page shows the visit${photos}, the time on site, and where the crew's phone was. ` +
-      `It's sealed on the Solana blockchain when the storm ends, so the record can't be changed later.`,
+      `The proof page shows the visit${photos}, the time on site, and where the crew's phone was, ` +
+      `and checks that none of it has been changed since the crew logged it.`,
     cta: "See proof of service",
     url,
     footer: owner

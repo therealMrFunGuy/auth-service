@@ -79,7 +79,6 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
                       {", "}
                       {v.photos.length} {v.photos.length === 1 ? "photo" : "photos"}
                       {v.distanceM != null && <span className={far ? "font-semibold text-brake" : ""}>, {v.distanceM} m away</span>}
-                      {v.anchorId ? ", sealed" : ", not sealed yet"}
                     </div>
                   </div>
                   <Link href={`/p/${v.proofToken}`} className="text-sm font-semibold underline">Proof page</Link>

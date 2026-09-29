@@ -6,7 +6,7 @@ Customer lists, crews, and (next) proof of service for snow removal contractors.
 
 - **Company accounts.** An owner signs in with an emailed link (no passwords) and creates their company.
 - **AI customer import.** Paste a messy list, upload a CSV, an invoice PDF, or a photo of a route sheet.
-  Claude pulls out names, addresses, phones, trigger depth, route order, and notes like gate codes,
+  An AI model (free, through OpenRouter) pulls out names, addresses, phones, trigger depth, route order, and notes like gate codes,
   flags anything it guessed, and catches duplicates (`2140 4th Street` = `2140 4th St.`).
   Nothing saves until the owner reviews and edits the table.
 - **Driver invites.** Owner enters a driver's email. The driver taps the link on their phone,
@@ -19,13 +19,13 @@ Customer lists, crews, and (next) proof of service for snow removal contractors.
   phone and uploads by itself later. A visit in progress survives a locked screen or a refresh.
 - **Storms.** Visits group into storms automatically. The office sees who did what, when, from how far away
   (anything over 150 m is flagged), and which properties are still waiting.
-- **Sealed on Solana.** Ending a storm writes one memo transaction holding the Merkle root of every visit.
-  Each visit gets a public proof page that re-checks the record, the photos, the batch, and the chain live.
+- **Proof pages.** Each visit is fingerprinted (SHA-256) when it uploads and gets a public proof page that
+  re-checks the record and photos live, so any later edit shows up.
 - **Route order.** Each driver's route runs first-out stops first, then standard, then last, and within each
   group orders stops by distance, starting from the company yard (nearest-neighbor, then 2-opt). The next stop
   is highlighted.
 - **PDF reports.** Per customer for any date range (defaults to the season, July 1 on), with times, GPS check,
-  notes, up to 3 photos per visit, Solana seal status, and clickable proof links — for invoices and slip-and-fall
+  notes, up to 3 photos per visit, and clickable proof links — for invoices and slip-and-fall
   claims. Per storm for the office. Each customer has a page with their full visit history.
 - **Company settings.** Time zone (picked up from the owner's browser at sign-up) and yard address.
 - **Proof sent to the customer.** When a visit uploads, the customer gets the proof link by email (on by default
@@ -36,8 +36,8 @@ Customer lists, crews, and (next) proof of service for snow removal contractors.
 ## Stack
 
 Next.js 16 (App Router) · Better Auth (magic link + organization plugins) · Drizzle ORM + Postgres ·
-Anthropic SDK (Claude Haiku 4.5 for extraction) · Resend for email · Tailwind CSS 4 ·
-US Census geocoder (free, no key) · @solana/web3.js + SPL Memo · IndexedDB (idb-keyval) for the offline queue ·
+OpenRouter (free Qwen model for extraction) · Resend for email · Twilio for texts · Tailwind CSS 4 ·
+US Census geocoder (free, no key) · pdf-lib for reports · IndexedDB (idb-keyval) for the offline queue ·
 S3-compatible photo storage (R2, S3, MinIO) via aws4fetch.
 
 ## Setup
@@ -56,20 +56,6 @@ terminal, so you can click the links without setting up email. Texts do the same
 
 For production, verify your sending domain in Resend and set `EMAIL_FROM` to an address on it.
 
-### Solana
-
-```bash
-npm run solana:keygen         # prints a public key and SOLANA_ANCHOR_SECRET_KEY for .env
-solana airdrop 1 <PUBKEY> --url devnet
-```
-
-Leave `SOLANA_CLUSTER=devnet` while testing. For mainnet set `SOLANA_CLUSTER=mainnet-beta`, point
-`SOLANA_RPC_URL` at a paid RPC (Helius, Triton, QuickNode), and fund the key with a small amount of SOL.
-Each storm is one transaction (about 0.000005 SOL). This key only pays fees, so keep its balance small.
-
-For a fully local chain: `solana-test-validator`, then `SOLANA_CLUSTER=localnet` and
-`SOLANA_RPC_URL=http://127.0.0.1:8899`.
-
 ### Deploying to Vercel
 
 1. Import the repo in Vercel with **Root Directory** `plowproof`. `vercel.json` runs the database migrations
@@ -77,7 +63,7 @@ For a fully local chain: `solana-test-validator`, then `SOLANA_CLUSTER=localnet`
 2. Add Postgres from the project's **Storage** tab (Neon works; it sets `DATABASE_URL`). Pooled URLs
    (`-pooler` hosts, PgBouncer) are detected and prepared statements turned off.
 3. Set `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` and `NEXT_PUBLIC_APP_URL` (the production URL),
-   `RESEND_API_KEY` + `EMAIL_FROM`, and `ANTHROPIC_API_KEY`. Solana and Twilio are optional.
+   `RESEND_API_KEY` + `EMAIL_FROM`, and `OPENROUTER_API_KEY`. Twilio is optional.
 4. Photos: on Vercel, `STORAGE_DRIVER` defaults to `db` (photos stored in Postgres), which is fine for testing.
    For a real season, set `STORAGE_DRIVER=s3` and point it at an R2 bucket.
 
@@ -101,7 +87,7 @@ Phones only allow GPS and the camera on HTTPS. With Tailscale: `tailscale serve 
 
 ```
 src/lib/auth.ts                  Better Auth config, email templates for sign-in + invites
-src/lib/ai-extract.ts            Claude prompt + tool schema for customer extraction
+src/lib/ai-extract.ts            OpenRouter prompt + JSON schema for customer extraction
 src/app/api/import/parse/        Upload handling, chunking, duplicate detection
 src/app/dashboard/import/        Review table (ImportFlow.tsx) + save action
 src/app/dashboard/team/          Invites and crew list
@@ -110,8 +96,8 @@ src/app/driver/                  Phone route view
 src/app/driver/stop/[id]/        Check-in screen (CheckIn.tsx)
 src/lib/offline-queue.ts         Drafts + upload queue in IndexedDB
 src/app/api/service/             Visit upload: idempotent, hashes photos server-side
-src/lib/proof.ts                 Record hashing + Merkle tree (the part to audit)
-src/lib/storms.ts                Storm assignment, sealing batches on Solana
+src/lib/proof.ts                 Record and photo fingerprints (the part to audit)
+src/lib/storms.ts                Storm assignment
 src/lib/verify.ts                Live checks behind the proof page
 src/lib/report.ts                PDF reports (pdf-lib, standard fonts)
 src/app/api/reports/             Customer and storm PDF endpoints
@@ -120,15 +106,18 @@ src/lib/company.ts               Company settings: time zone, yard
 src/lib/notify.ts                Proof email and text to the customer (each sent once per visit)
 src/lib/sms.ts                   Twilio sender, phone number normalizing
 src/app/p/[token]/               Public proof page
-src/app/dashboard/storms/        Storm list, visit review, End storm / seal
+src/app/dashboard/storms/        Storm list, visit review, End storm
 src/db/schema.ts                 customer table (+ re-exports Better Auth tables)
 ```
 
 ## Notes
 
-- **Model.** Defaults to `claude-haiku-4-5-20251001`. Set `ANTHROPIC_MODEL` to use a larger model
-  if you see misreads on handwritten route sheets.
-- **Large lists.** Text over 120 rows is split into chunks (header row repeated) and read 4 at a time.
+- **Model.** Defaults to `qwen/qwen3.8-27b:free` on OpenRouter (reads text and photos, returns strict JSON),
+  falling back to OpenRouter's `openrouter/free` router if it's busy. Free models allow 20 requests a minute and
+  50 a day (1,000 a day once the account has bought $10 of credits); each import uses one request per file or per
+  120 rows. Set `OPENROUTER_MODEL` to a paid model if you see misreads on handwritten route sheets. PDFs are
+  converted to text with OpenRouter's free parser, so scanned PDFs read best as photos instead.
+- **Large lists.** Text over 120 rows is split into chunks (header row repeated) and read 2 at a time.
 - **Excel.** `.xlsx` is rejected with a prompt to export as CSV, which avoids a spreadsheet parser dependency.
 - **Geocoding** runs after the save response (Next.js `after()`), so saves feel instant.
   Addresses the Census geocoder can't find are marked on the Customers page; "Retry map lookup" re-runs pending ones.
@@ -139,17 +128,12 @@ src/db/schema.ts                 customer table (+ re-exports Better Auth tables
 1. When a visit is uploaded, the server hashes each photo (SHA-256 of the exact stored bytes), then hashes
    the record: a fixed-order JSON array of the visit id, company, storm, property, address, driver, start and
    finish times, GPS, photo hashes, and notes (`src/lib/proof.ts`). Records are never edited after this.
-2. Sealing a storm puts every unsealed record hash into a Merkle tree (0x00 leaf prefix, 0x01 node prefix)
-   and writes `plowproof:v1:<batch id>:<root>` to Solana with the SPL Memo program.
-3. The proof page recomputes the record hash, re-hashes the photos from storage, rebuilds the Merkle path,
-   and reads the memo back from the chain. Change any byte of the record or a photo and it shows as failed.
-   Other customers' visits in the same batch are never revealed; only sibling hashes are.
+2. The proof page recomputes the record hash and re-hashes the photos from storage. Change any byte of the
+   record or a photo and it shows as failed.
 
-Visits logged after a storm is sealed get sealed in a new batch ("Seal now" on the storm page).
-If Solana can't be reached, the batch is saved and "Try again" re-sends the same root.
+The fingerprints catch edits to a record or photo after upload. They don't stop someone with database access
+from rewriting a record and its fingerprint together; for that you'd publish the fingerprints somewhere outside
+your control (a timestamping service, or adding the fingerprint to the customer's proof email).
 
 Proof links are unguessable (192-bit tokens) and not indexed by search engines, but anyone with the link can
 see the address and photos. Share them with the customer or insurer who needs them.
-
-## Next ideas
-

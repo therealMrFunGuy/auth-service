@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { explorerUrl } from "@/lib/solana";
 import { fmtDateTime, fmtTime } from "@/lib/time";
 import { verifyVisit, type Check } from "@/lib/verify";
 
@@ -10,7 +9,7 @@ export const dynamic = "force-dynamic";
 const MARK: Record<string, { sym: string; cls: string; label: string }> = {
   true: { sym: "✓", cls: "bg-thaw text-salt", label: "Passed" },
   false: { sym: "✕", cls: "bg-brake text-salt", label: "Failed" },
-  null: { sym: "…", cls: "bg-frost text-asphalt", label: "Pending" },
+  null: { sym: "…", cls: "bg-frost text-asphalt", label: "Not checked" },
 };
 
 function CheckRow({ c }: { c: Check }) {
@@ -32,7 +31,7 @@ export default async function ProofPage({ params }: { params: Promise<{ token: s
   const { token } = await params;
   const v = await verifyVisit(token);
   if (!v) notFound();
-  const { ev, orgName, tz, anchor, proof, checks } = v;
+  const { ev, orgName, tz, checks } = v;
 
   const mins = Math.round((ev.completedAt.getTime() - ev.startedAt.getTime()) / 60_000);
   const failed = checks.some((c) => c.ok === false);
@@ -82,14 +81,9 @@ export default async function ProofPage({ params }: { params: Promise<{ token: s
 
         <section className={`mt-10 rounded border-2 p-5 ${failed ? "border-brake" : allGood ? "border-thaw" : "border-frost"} bg-salt`}>
           <h2 className="sign text-2xl font-bold">
-            {failed ? "This record failed verification" : allGood ? "Verified: this record hasn't been changed" : "Verification in progress"}
+            {failed ? "This record failed verification" : allGood ? "Verified: this record hasn't been changed" : "Some checks couldn't run"}
           </h2>
           <ul className="mt-2 divide-y divide-frost">{checks.map((c) => <CheckRow key={c.title} c={c} />)}</ul>
-          {anchor?.txSignature && (
-            <a href={explorerUrl(anchor.txSignature)} target="_blank" rel="noopener noreferrer" className="btn btn-quiet mt-3">
-              See it on the Solana explorer
-            </a>
-          )}
         </section>
 
         <details className="mt-6 text-sm">
@@ -102,22 +96,6 @@ export default async function ProofPage({ params }: { params: Promise<{ token: s
             {ev.photos.map((p, i) => (
               <p key={p.sha256}>Photo {i + 1} SHA-256: <code className="text-asphalt">{p.sha256}</code></p>
             ))}
-            {anchor && (
-              <>
-                <p>Batch root (Merkle tree, SHA-256, leaf prefix 0x00, node prefix 0x01):<br /><code className="text-asphalt">{anchor.merkleRoot}</code></p>
-                <p>
-                  Proof path from this record to the root:
-                  {proof.length === 0 ? " none needed (only record in the batch)" : ""}
-                </p>
-                {proof.length > 0 && (
-                  <ol className="list-decimal pl-5">
-                    {proof.map((s, i) => <li key={i}><code className="text-asphalt">{s.side}: {s.hash}</code></li>)}
-                  </ol>
-                )}
-                <p>Solana memo: <code className="text-asphalt">{anchor.memo}</code></p>
-                {anchor.txSignature && <p>Transaction: <code className="text-asphalt">{anchor.txSignature}</code> ({anchor.cluster})</p>}
-              </>
-            )}
           </div>
         </details>
       </main>

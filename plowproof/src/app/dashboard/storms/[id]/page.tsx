@@ -3,13 +3,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { and, asc, desc, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { anchor, customer, serviceEvent, storm } from "@/db/schema";
+import { customer, serviceEvent, storm } from "@/db/schema";
 import { FAR_FROM_PROPERTY_M } from "@/lib/geo";
 import { requireDispatcher } from "@/lib/session";
-import { explorerUrl } from "@/lib/solana";
 import { fmtDateTime, fmtTime } from "@/lib/time";
 import { getTimezone } from "@/lib/company";
-import { AnchorRetry, SendProofButton, StormControls } from "./StormControls";
+import { SendProofButton, StormControls } from "./StormControls";
 
 export const metadata: Metadata = { title: "Storm" };
 
@@ -64,9 +63,8 @@ export default async function StormPage({ params }: { params: Promise<{ id: stri
   const [s] = await db.select().from(storm).where(and(eq(storm.id, id), eq(storm.organizationId, orgId)));
   if (!s) notFound();
 
-  const [visits, anchors, customers, tz] = await Promise.all([
+  const [visits, customers, tz] = await Promise.all([
     db.select().from(serviceEvent).where(eq(serviceEvent.stormId, s.id)).orderBy(desc(serviceEvent.completedAt)),
-    db.select().from(anchor).where(eq(anchor.stormId, s.id)).orderBy(asc(anchor.createdAt)),
     db.select({ id: customer.id, name: customer.name, street: customer.street, priority: customer.priority, email: customer.email, emailProof: customer.emailProof, phone: customer.phone, textProof: customer.textProof }).from(customer).where(eq(customer.organizationId, orgId)).orderBy(asc(customer.priority), asc(customer.street)),
     getTimezone(orgId),
   ]);
@@ -74,7 +72,6 @@ export default async function StormPage({ params }: { params: Promise<{ id: stri
   const served = new Set(visits.map((v) => v.customerId));
   const byId = new Map(customers.map((c) => [c.id, c]));
   const notYet = customers.filter((c) => !served.has(c.id));
-  const unsealed = visits.filter((v) => !v.anchorId).length;
   const flagged = visits.filter((v) => location(v.distanceM, v.accuracyM).warn).length;
 
   return (
@@ -92,7 +89,7 @@ export default async function StormPage({ params }: { params: Promise<{ id: stri
           {flagged > 0 && <span className="text-brake">, {flagged} {flagged === 1 ? "visit needs" : "visits need"} a location check</span>}
         </p>
         <div className="mt-4">
-          <StormControls stormId={s.id} isOpen={!s.endedAt} unsealed={unsealed} />
+          <StormControls stormId={s.id} isOpen={!s.endedAt} />
         </div>
         {visits.length > 0 && (
           <a href={`/api/reports/storm/${s.id}`} target="_blank" rel="noopener" className="mt-3 inline-block font-semibold underline">
@@ -100,32 +97,6 @@ export default async function StormPage({ params }: { params: Promise<{ id: stri
           </a>
         )}
       </div>
-
-      {anchors.length > 0 && (
-        <div>
-          <h2 className="sign text-2xl font-bold">Sealed on Solana</h2>
-          <ul className="mt-3 divide-y divide-frost rounded border border-frost bg-salt">
-            {anchors.map((a) => (
-              <li key={a.id} className="flex flex-wrap items-center gap-x-6 gap-y-1 px-4 py-3">
-                <div className="min-w-0 flex-1">
-                  <div className="font-semibold">
-                    {a.leaves.length} {a.leaves.length === 1 ? "visit" : "visits"},{" "}
-                    {a.status === "confirmed" ? `sealed ${fmtDateTime(a.confirmedAt!, tz)}` : a.status === "failed" ? "not sealed" : "sealing…"}
-                  </div>
-                  <div className="truncate font-mono text-xs text-slush" title={a.merkleRoot}>Root {a.merkleRoot}</div>
-                  {a.status === "failed" && <div className="text-sm text-brake">{a.error}</div>}
-                </div>
-                {a.txSignature && (
-                  <a href={explorerUrl(a.txSignature)} target="_blank" rel="noopener noreferrer" className="btn btn-quiet min-h-9 px-3 text-sm">
-                    View transaction
-                  </a>
-                )}
-                {a.status !== "confirmed" && <AnchorRetry anchorId={a.id} />}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
 
       <div>
         <h2 className="sign text-2xl font-bold">Visits ({visits.length})</h2>

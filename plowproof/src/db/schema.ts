@@ -93,7 +93,7 @@ export const companySettings = pgTable("company_settings", {
 
 export type CompanySettings = typeof companySettings.$inferSelect;
 
-/** One snow event. Service records are grouped by storm, and each storm is anchored on Solana. */
+/** One snow event. Service records are grouped by storm. */
 export const storm = pgTable(
   "storm",
   {
@@ -150,7 +150,6 @@ export const serviceEvent = pgTable(
     recordHash: text("record_hash").notNull(),
     /** Unguessable token for the public proof page /p/[token]. */
     proofToken: text("proof_token").notNull(),
-    anchorId: text("anchor_id").references(() => anchor.id, { onDelete: "set null" }),
 
     /** Delivery status of the proof email. Not part of recordHash; safe to update. */
     customerEmailedAt: timestamp("customer_emailed_at", tz),
@@ -166,46 +165,17 @@ export const serviceEvent = pgTable(
   ],
 );
 
-/** A batch of service records whose Merkle root was written to Solana in one memo transaction. */
-export const anchor = pgTable(
-  "anchor",
-  {
-    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-    organizationId: text("organization_id")
-      .notNull()
-      .references(() => organization.id, { onDelete: "cascade" }),
-    stormId: text("storm_id")
-      .notNull()
-      .references(() => storm.id, { onDelete: "cascade" }),
-    merkleRoot: text("merkle_root").notNull(),
-    /** Record hashes in tree order. Stored so any single record's proof can be rebuilt later. */
-    leaves: jsonb("leaves").$type<string[]>().notNull(),
-    memo: text("memo").notNull(),
-    cluster: text("cluster").notNull(),
-    /** pending | confirmed | failed */
-    status: text("status").notNull().default("pending"),
-    txSignature: text("tx_signature"),
-    error: text("error"),
-    createdAt: timestamp("created_at", tz).defaultNow().notNull(),
-    confirmedAt: timestamp("confirmed_at", tz),
-  },
-  (t) => [index("anchor_org_storm_idx").on(t.organizationId, t.stormId)],
-);
-
 export const stormRelations = relations(storm, ({ many }) => ({
   events: many(serviceEvent),
-  anchors: many(anchor),
 }));
 
 export const serviceEventRelations = relations(serviceEvent, ({ one }) => ({
   storm: one(storm, { fields: [serviceEvent.stormId], references: [storm.id] }),
   customer: one(customer, { fields: [serviceEvent.customerId], references: [customer.id] }),
-  anchor: one(anchor, { fields: [serviceEvent.anchorId], references: [anchor.id] }),
 }));
 
 export type Storm = typeof storm.$inferSelect;
 export type ServiceEvent = typeof serviceEvent.$inferSelect;
-export type Anchor = typeof anchor.$inferSelect;
 
 export type Customer = typeof customer.$inferSelect;
 export type NewCustomer = typeof customer.$inferInsert;

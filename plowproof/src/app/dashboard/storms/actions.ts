@@ -4,10 +4,10 @@ import { and, eq, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
-import { anchor, serviceEvent, storm } from "@/db/schema";
+import { serviceEvent, storm } from "@/db/schema";
 import { emailVisitProof, textVisitProof, type Channel, type NoticeOutcome } from "@/lib/notify";
 import { requireDispatcher } from "@/lib/session";
-import { anchorStorm, openStorm, sendAnchor, startStorm, type AnchorOutcome } from "@/lib/storms";
+import { openStorm, startStorm } from "@/lib/storms";
 
 export async function startStormAction(formData: FormData) {
   const { membership } = await requireDispatcher();
@@ -18,35 +18,14 @@ export async function startStormAction(formData: FormData) {
   redirect(`/dashboard/storms/${s.id}`);
 }
 
-export async function endStormAction(stormId: string, snowfall: number | null): Promise<AnchorOutcome> {
+export async function endStormAction(stormId: string, snowfall: number | null) {
   const { membership } = await requireDispatcher();
   await db
     .update(storm)
     .set({ endedAt: new Date(), snowfallInches: snowfall })
     .where(and(eq(storm.id, stormId), eq(storm.organizationId, membership.organizationId), isNull(storm.endedAt)));
-  const outcome = await anchorStorm(membership.organizationId, stormId);
   revalidatePath(`/dashboard/storms/${stormId}`);
   revalidatePath("/driver");
-  return outcome;
-}
-
-export async function anchorNowAction(stormId: string): Promise<AnchorOutcome> {
-  const { membership } = await requireDispatcher();
-  const outcome = await anchorStorm(membership.organizationId, stormId);
-  revalidatePath(`/dashboard/storms/${stormId}`);
-  return outcome;
-}
-
-export async function retryAnchorAction(anchorId: string): Promise<AnchorOutcome> {
-  const { membership } = await requireDispatcher();
-  const [a] = await db
-    .select()
-    .from(anchor)
-    .where(and(eq(anchor.id, anchorId), eq(anchor.organizationId, membership.organizationId)));
-  if (!a || a.status === "confirmed") return { status: "nothing" };
-  const outcome = await sendAnchor(a.id);
-  revalidatePath(`/dashboard/storms/${a.stormId}`);
-  return outcome;
 }
 
 export async function sendProofAction(eventId: string, channel: Channel): Promise<NoticeOutcome> {
